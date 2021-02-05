@@ -20,7 +20,8 @@ PGraphics ambientFace;
 PGraphics interactiveFace;
 
 void setup() {
-  fullScreen(P2D);
+  //fullScreen(P2D);
+  size(400, 400, P2D);
   frameRate(30);
   colorMode(HSB);
   
@@ -29,7 +30,7 @@ void setup() {
   lengths = new float[] { 75, 100, 50 };
   
   interactiveMinScale = 0.1f;
-  ambientMinScale = 0.1f;
+  ambientMinScale = 0.02f;
   
   interactiveSecondLength = 75;
   
@@ -51,7 +52,7 @@ void draw() {
   float colChange = 150;
 
   float frac = 1f;
-  if(wearAmbient()) {
+  if(!mousePressed) {
     smallestHandToDraw = 1;
     lastInteractiveMillis = 0;
     minScale = ambientMinScale;
@@ -97,35 +98,55 @@ void draw() {
     }
   }
 
+  base = null;
   float col = pingPong(angles[1] * 60f / PI * 255f, 255);
   //blendMode(BLEND);
+  stroke(255);
   strokeWeight(1);
   drawHands(baseScale, scaleChange, col, colChange);
-  strokeWeight(10);
-  drawHands(handScale, 0.0f, 0, 0);
-  strokeWeight(5);
-  drawHands(handScale, 0.0f, 255, 50);
+  shape(fractal);
+  //strokeWeight(10);
+  //drawHands(handScale, 0.0f, 0, 0);
+  //strokeWeight(5);
+  //drawHands(handScale, 0.0f, 255, 50);
   
   resetMatrix();
   //blendMode(EXCLUSION);
-  if(wearAmbient()) image(ambientFace, 0, 0);
+  if(!mousePressed) image(ambientFace, 0, 0);
   else image(interactiveFace, 0, 0);
 }
 
+PShape base;
+PShape fractal;
 void drawHands(float scale, float scaleChange, float col, float colChange) {
-  if(scale < minScale) return;
-    
-  for(int i = 2; i >= smallestHandToDraw; --i) {
-    pushMatrix();
-    rotate(angles[i]);
-    translate(0, -lengths[i] * scale);
-    drawHands(scale * scaleChange, scaleChange, col, colChange * scaleChange);
-    //stroke(col % 255, 255, 255);
-    stroke(0, 0, pingPong(col, 255));
-    line(0, 0, 0, lengths[i] * scale);
-    popMatrix();
-    col += colChange;
+  base = createShape(LINE, 0, 50, 0, 0);
+  fractal = createShape(GROUP);
+  fractal.addChild(base);
+  base.rotate(PI/2);
+  fractal.addChild(base);
+  /*
+  if(base == null) {
+    base = createShape(GROUP);
+    fractal = createShape(GROUP);
   }
+  if(scale > minScale) {
+    base.rotate(angles[1]);
+    base.translate(0, -lengths[1] * scale);
+    drawHands(scale * scaleChange, scaleChange, col, colChange);
+  } else {
+    base.addChild(createShape(LINE, 0, 0, 0, -lengths[1] * scale));
+  }
+  
+  fractal.addChild(base);
+  base = fractal.copy();
+  /*
+  for(int i = 0; i < 10; ++i) {
+    rotate(angles[1]);
+    //line(0, 0, 0, -lengths[1]);
+    translate(0, -lengths[1]);
+    scale(scaleChange);
+  }
+  */
 }
 
 float logistic(float t, float max, float steep) {
