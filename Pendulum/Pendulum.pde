@@ -1,13 +1,15 @@
 import java.time.*;
 
-float lineThickness = 4;
-float circleRadius = 70;
-float pendulumLength = 300;
-float maxAngleReduce = 0.8f;
+float pendulumLength = 0;
+float circleRadius = 0;
+float curCircleRadius = circleRadius;
 float maxAngle = 0;
 float halfMaxHeight = 0;
 
-float curCircleRadius = circleRadius;
+float lineThickness = 5;
+float maxAngleReduce = 0.8f;
+
+PImage blackBackground;
 
 int state = 0;
 int side = 0;
@@ -16,19 +18,28 @@ int lastInteractiveMillis = 0;
 int animationMillis = 1 * 1000;
 
 void setup() {
-  size(400, 400); 
+  fullScreen();
+  frameRate(30);
   
+  pendulumLength = height * 1.5f;
+  circleRadius = 70;
+  curCircleRadius = circleRadius;
   maxAngle = asin((width/2 - circleRadius) / pendulumLength);
   maxAngle *= maxAngleReduce;
   halfMaxHeight = sin(maxAngle) * 0.67f * circleRadius;
   
+  blackBackground = createBackground(circleRadius);
+  
+  imageMode(CENTER);
+  rectMode(CORNERS);
   strokeCap(SQUARE);
   textAlign(CENTER, CENTER);
 }
 
 void draw() {
   background(0);
-  translate(width/2, height/2);
+  //translate(0, wearInsets().bottom/2);
+  translate(0, 0);
   
   Instant now = Instant.now();
   
@@ -37,17 +48,21 @@ void draw() {
   String date = getDate(ldt);
   fill(255);
   noStroke();
-  textSize(50);
-  text(time, 0, -15);
+  pushMatrix();
+  translate(width/2, height/2);
+  scale(displayDensity);
   textSize(30);
-  text(date, 0, 35);
+  text(time, 0, -15);
+  textSize(20);
+  text(date, 0, 15);
+  popMatrix();
   
-  if(!mousePressed) {
+  if(wearAmbient()) {
     lastInteractiveMillis = 0;
     noFill();
     stroke(127);
     strokeWeight(lineThickness);
-    circle(0, 0, width);
+    circle(width/2, height/2, width - lineThickness/2);
   } else {
     
     float logisticFrac;
@@ -71,29 +86,46 @@ void draw() {
     circleY = lerp(0, circleY, logisticFrac);
     //circleY = lerp(lerp(0, -height, frac), lerp(0, circleY, frac), logisticFrac);
     
-    setPixelsToBlack(circleX, circleY, curCircleRadius);
+    circleX += width/2;
+    circleY += height/2;
     
-    pushMatrix();
+    fill(0);
+    noStroke();
+    rect(0, 0, circleX - curCircleRadius, height);
+    rect(circleX + curCircleRadius, 0, width, height);
+    rect(circleX - curCircleRadius, 0, circleX, circleY - curCircleRadius);
+    rect(circleX - curCircleRadius, circleY + curCircleRadius, circleX, height);
+    
     translate(circleX, circleY);
-    rotate(angle - HALF_PI);
+            
+    pushMatrix();
+    scale(curCircleRadius / circleRadius);
+    image(blackBackground, 0, 0);
+    popMatrix();
+    
     noFill();
     stroke(255);
-    strokeWeight(lineThickness * 3);
-    line(0, -curCircleRadius, 0, -pendulumLength);
-    stroke(0);
     strokeWeight(lineThickness);
+    pushMatrix();
+    rotate(angle - HALF_PI);
     line(0, -curCircleRadius, 0, -pendulumLength);
     popMatrix();
     
+    noFill();
     stroke(255);
-    circle(circleX, circleY, curCircleRadius * 2);
+    strokeWeight(lineThickness);
+    circle(0, 0, curCircleRadius * 2);
   }
 }
 
 String getTime(LocalDateTime ldt) {
-  String time = ldt.getSecond() + "";
-  if(ldt.getSecond() < 10) time = "0" + time;
-  time = ldt.getMinute() + ":" + time;
+  String time = "";
+  if(wearInteractive()) {
+    time = ldt.getSecond() + "";
+    if(ldt.getSecond() < 10) time = "0" + time;
+    time = ":" + time;
+  }
+  time = ldt.getMinute() + time;
   if(ldt.getMinute() < 10) time = "0" + time;
   int hour = ldt.getHour();
   if(hour > 12) time = (hour - 12) + ":" + time + " pm"; 
@@ -109,20 +141,21 @@ String getDate(LocalDateTime ldt) {
   return date;
 }
 
-void setPixelsToBlack(float x, float y, float radius) {
-  x += width/2;
-  y += height/2;
+PImage createBackground(float radius) {
+  PImage img = createImage((int)(radius * 2), (int)(radius * 2), ARGB);
+  int x = img.width/2, y = img.height/2;
   float radiusSquared = radius * radius;
   color black = color(0);
   
-  loadPixels();
-  for(int i = 0; i < pixels.length; ++i) {
-    int px = i % width, py = i / width;
+  for(int i = 0; i < img.pixels.length; ++i) {
+    int px = i % img.width, py = i / img.width;
     float dx = px - x, dy = py - y;
     boolean outside = dx * dx + dy * dy > radiusSquared;
-    if(outside) pixels[i] = black;
+    if(outside) img.pixels[i] = black;
+    else img.pixels[i] = 0;
   }
-  updatePixels();
+  
+  return img;
 }
 
 float logistic(float t, float max, float steep) {
