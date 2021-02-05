@@ -32,11 +32,12 @@ void setup() {
   //twentyFourHour = new SimpleDateFormat("HH:mm");
   timeFormatter = DateTimeFormatter.ofPattern("h:mm a");  
   dateFormatter = DateTimeFormatter.ofPattern("EE, MMMM d");  
-
-  rectMode(CENTER);
-  textAlign(CENTER, CENTER);
-  textFont(createFont("SansSerif", 50));
   
+  //textSize = 30 * displayDensity;
+  textSize = 50;
+  textFont(createFont("SansSerif", textSize));
+  textAlign(CENTER, CENTER);
+
   stars = new float[numStars * N];
   for(int i = 0; i < stars.length; i += N) {
     randomizeStar(i);
@@ -46,7 +47,6 @@ void setup() {
 
 void draw() {
   background(0);
-  hint(ENABLE_DEPTH_TEST);
   
   pushMatrix();
   //translate(width/2, height/2 + wearInsets().bottom/2);
@@ -83,27 +83,11 @@ void draw() {
   }
   popMatrix();
   
-  hint(DISABLE_DEPTH_TEST);
   translate(width/2, height/2, 0);
   
-  String time = timeFormatter.format(LocalDateTime.now()).toLowerCase();  
-  fill(0);
-  noStroke();
-  rect(0, 0, textWidth(time.toString()) + 10, textSize);
-  
-  //textSize = 30 * displayDensity;
-  float textSize = 50;
-
-  fill(255);
-  
-  textSize(textSize);
-  text(time, 0, -5);
-  
-  time = dateFormatter.format(LocalDateTime.now());
-  float w = textWidth(time);
-  float r = textSize / w;
-  textSize(w * r);
-  text(time, 0, 10);
+  hint(DISABLE_DEPTH_TEST);
+  drawText();
+  hint(ENABLE_DEPTH_TEST);
 }
 
 void drawStars() {
@@ -115,7 +99,7 @@ void drawStars() {
     else stroke(255);
       
     line(stars[i+X], stars[i+Y], stars[i+Z], stars[i+X], stars[i+Y], stars[i+Z] - lineLength);
-    if(lineLength < 10) point(stars[i+X], stars[i+Y], stars[i+Z]);
+    point(stars[i+X], stars[i+Y], stars[i+Z]);
     stars[i+Z] += starSpeed;
   }
 }
@@ -137,5 +121,35 @@ void randomizeStar(int star) {
   stars[star+X] = cos(angle) * length;
   stars[star+Y] = sin(angle) * length;
   stars[star+Z] = 0;
-  stars[star+M] = 2000 - length;
+  stars[star+M] = 2000 - length * 2;
+}
+
+void drawText() {  
+  //fill(0);
+  //noStroke();
+  //rect(0, 0, textWidth(time.toString()) + 10, textSize);
+  
+  String time = timeFormatter.format(LocalDateTime.now()).toLowerCase();  
+  float timeSize = textSize;
+  textSize(timeSize);
+  float timeWidth = textWidth(time);
+  
+  String date = dateFormatter.format(LocalDateTime.now());
+  float dateSize = textSize;
+  float dateSizeDiff = timeSize * 0.5f;
+  while(dateSizeDiff > 1f) {
+    textSize(dateSize);
+    float dateWidth = textWidth(date);
+    if(timeWidth < dateWidth) dateSize -= dateSizeDiff;
+    else dateSize += dateSizeDiff;
+    dateSizeDiff *= 0.5f;
+  }
+
+  float h = timeSize + dateSize;
+
+  fill(255);
+  textSize(timeSize);
+  text(time, 0, -h/4);
+  textSize(dateSize);
+  text(date, 0,  h/4);
 }
