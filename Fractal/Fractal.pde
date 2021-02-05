@@ -3,27 +3,32 @@ import java.time.LocalDateTime;
 // Seconds, Minutes, Hours
 float[] angles;
 float[] lengths;
+
 float minScale;
+float interactiveMinScale;
+float ambientMinScale;
 
 float interactiveSecondAngle;
 float interactiveSecondLength;
 
 int smallestHandToDraw = 0;
 
-int lastAmbientFrame = 0;
-int animationFrames = 60;
-
-boolean mode = false;
+int lastInteractiveMillis = 0;
+int animationMillis = 1 * 1000;
+int lastFrameMillis = 0;
 
 PGraphics face;
 
 void setup() {
-  size(400, 400, P2D);
+  fullScreen(P2D);
   frameRate(30);
   colorMode(HSB);
   
   angles = new float[3];
   lengths = new float[] { 75, 100, 50 };
+  
+  interactiveMinScale = 0.1f;
+  ambientMinScale = 0.01f;
   
   interactiveSecondAngle = 0;
   interactiveSecondLength = 75;
@@ -62,23 +67,29 @@ void draw() {
   float handScale = 0.8f;
   
   // Ambient-specific
-  minScale = 0.01f;
   float colChange = 150;
 
-  if(mode) {
+  if(wearAmbient()) {
     smallestHandToDraw = 1;
-    lastAmbientFrame = frameCount;
+    lastInteractiveMillis = 0;
+    minScale = ambientMinScale;
 
     angles[0] = angles[1];
     lengths[0] = lengths[1];
   } else {
     smallestHandToDraw = 0;
-
-    minScale = 0.033f;
-    colChange = 80;
+    minScale = interactiveMinScale;
+    colChange = 160;
     
-    float frac = (float)(frameCount - lastAmbientFrame) / animationFrames;
-    if(frac >= 1) {
+    if(lastInteractiveMillis == 0)
+      lastInteractiveMillis = millis();
+      
+    int lastFrameTime = millis() - lastFrameMillis;
+    if(lastFrameTime < 28) interactiveMinScale += 0.005f;
+    else if(lastFrameTime > 32) interactiveMinScale -= 0.01f;
+          
+    float frac = (float)(millis() - lastInteractiveMillis) / animationMillis;
+    if(frac >= 1) {            
       angles[0] = interactiveSecondAngle;
       lengths[0] = interactiveSecondLength;
     } else {
@@ -107,6 +118,8 @@ void draw() {
   resetMatrix();
   //blendMode(EXCLUSION);
   image(face, 0, 0);
+  
+  lastFrameMillis = millis();
 }
 
 void drawHands(float scale, float scaleChange, float col, float colChange) {
@@ -134,8 +147,4 @@ float pingPong(float t, float max) {
   float T = t % L;
   if(T >= 0 && T < max) return T;
   return L - T;
-}
-
-void keyPressed() {
-  mode = !mode;
 }
