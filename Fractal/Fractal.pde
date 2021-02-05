@@ -2,20 +2,19 @@ import java.time.LocalDateTime;
 
 // Seconds, Minutes, Hours
 float[] angles;
+float[] lastAngles;
 float[] lengths;
 
 float minScale;
 float interactiveMinScale;
 float ambientMinScale;
 
-float interactiveSecondAngle;
 float interactiveSecondLength;
 
 int smallestHandToDraw = 0;
 
 int lastInteractiveMillis = 0;
 int animationMillis = 1 * 1000;
-int lastFrameMillis = 0;
 
 PGraphics face;
 
@@ -25,12 +24,12 @@ void setup() {
   colorMode(HSB);
   
   angles = new float[3];
+  lastAngles = new float[3];
   lengths = new float[] { 75, 100, 50 };
   
   interactiveMinScale = 0.1f;
   ambientMinScale = 0.01f;
   
-  interactiveSecondAngle = 0;
   interactiveSecondLength = 75;
   
   face = createGraphics(width, height);
@@ -55,12 +54,7 @@ void draw() {
   translate(width/2, height/2);
 
   stroke(255);
-    
-  LocalDateTime now = LocalDateTime.now();
-  interactiveSecondAngle = TWO_PI * (now.getSecond() + now.getNano() * 1e-9) / 60f;
-  angles[1] = (TWO_PI * now.getMinute() + interactiveSecondAngle) / 60f;
-  angles[2] = (TWO_PI * now.getHour() + angles[1]) / 12f;
-  
+      
   // Defaults
   float baseScale = 0.8f;
   float scaleChange = 0.7f;
@@ -69,43 +63,53 @@ void draw() {
   // Ambient-specific
   float colChange = 150;
 
+  float frac = 1f;
   if(wearAmbient()) {
     smallestHandToDraw = 1;
     lastInteractiveMillis = 0;
     minScale = ambientMinScale;
 
+    angles[1] = TWO_PI * minute() / 60f;
+    angles[2] = (TWO_PI * hour() + angles[1]) / 12f;
     angles[0] = angles[1];
+    
     lengths[0] = lengths[1];
   } else {
     smallestHandToDraw = 0;
     minScale = interactiveMinScale;
     colChange = 160;
     
-    if(lastInteractiveMillis == 0)
+    LocalDateTime now = LocalDateTime.now();
+    float[] desiredAngles = new float[3];
+    desiredAngles[0] = TWO_PI * (now.getSecond() + now.getNano() * 1e-9) / 60f;
+    desiredAngles[1] = (TWO_PI * now.getMinute() + desiredAngles[0]) / 60f;
+    desiredAngles[2] = (TWO_PI * now.getHour() + angles[1]) / 12f;
+        
+    if(lastInteractiveMillis == 0) {
       lastInteractiveMillis = millis();
-      
-    int lastFrameTime = millis() - lastFrameMillis;
-    if(lastFrameTime < 28) interactiveMinScale += 0.005f;
-    else if(lastFrameTime > 32) interactiveMinScale -= 0.01f;
-          
-    float frac = (float)(millis() - lastInteractiveMillis) / animationMillis;
-    if(frac >= 1) {            
-      angles[0] = interactiveSecondAngle;
+      for(int i = 0; i < 3; ++i) lastAngles[i] = angles[i];
+    }
+    frac = (float)(millis() - lastInteractiveMillis) / animationMillis;
+        
+    if(frac >= 1) {
+      for(int i = 0; i < 3; ++i) angles[i] = desiredAngles[i];
       lengths[0] = interactiveSecondLength;
     } else {
       float logisticFrac = logistic(frac, 1, 3);
-
-      if(interactiveSecondAngle < angles[0])
-        interactiveSecondAngle += TWO_PI;
-        
-      float diff = interactiveSecondAngle - angles[1];
-      if(diff <= PI) angles[0] = lerp(angles[1], interactiveSecondAngle, logisticFrac);
-      else           angles[0] = lerp(angles[1], interactiveSecondAngle - TWO_PI, logisticFrac);
-
+  
+      for(int i = 0; i < 3; ++i) {
+        if(desiredAngles[i] < angles[i])
+          desiredAngles[i] += TWO_PI;
+          
+        float diff = desiredAngles[i] - lastAngles[i];
+        if(diff <= PI) angles[i] = lerp(lastAngles[i], desiredAngles[i], logisticFrac);
+        else           angles[i] = lerp(lastAngles[i], desiredAngles[i] - TWO_PI, logisticFrac);
+      }
+      
       lengths[0] = lerp(lengths[1], interactiveSecondLength, logisticFrac);
     }
   }
-    
+
   float col = pingPong(angles[1] * 60f / PI * 255f, 255);
   //blendMode(BLEND);
   strokeWeight(1);
@@ -118,8 +122,6 @@ void draw() {
   resetMatrix();
   //blendMode(EXCLUSION);
   image(face, 0, 0);
-  
-  lastFrameMillis = millis();
 }
 
 void drawHands(float scale, float scaleChange, float col, float colChange) {
