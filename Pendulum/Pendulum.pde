@@ -2,7 +2,9 @@ import java.time.*;
 
 float circleRadius = 70;
 float pendulumLength = 300;
+float maxAngleReduce = 0.8f;
 float maxAngle = 0;
+float maxHeight = 0;
 
 int state = 0;
 int side = 0;
@@ -11,6 +13,8 @@ void setup() {
   size(400, 400); 
   
   maxAngle = asin((width/2 - circleRadius) / pendulumLength);
+  maxAngle *= maxAngleReduce;
+  maxHeight = sin(maxAngle);
   
   textSize(50);
   textAlign(CENTER, CENTER);
@@ -33,14 +37,19 @@ void draw() {
   float angle = cos((side + now.getNano() * 1e-9) * PI) * maxAngle + HALF_PI;
   float cos = cos(angle), sin = sin(angle);
   
-  float circleX = cos * pendulumLength, circleY = sin * pendulumLength - pendulumLength;
+  float circleX = cos * pendulumLength, circleY = sin * pendulumLength - pendulumLength + maxHeight * 0.5f * circleRadius;
   setPixelsToBlack(circleX, circleY);
   
+  strokeCap(SQUARE);
   noFill();
   stroke(255);
+  strokeWeight(9);
+  line(0, -pendulumLength, circleX - cos * circleRadius, circleY - sin * circleRadius);
+  stroke(0);
   strokeWeight(3);
-  line(0, -pendulumLength, cos * (pendulumLength - circleRadius), sin * (pendulumLength - circleRadius) - pendulumLength);
-  circle(cos * pendulumLength, sin * pendulumLength - pendulumLength, circleRadius * 2);
+  line(0, -pendulumLength, circleX - cos * circleRadius, circleY - sin * circleRadius);
+  stroke(255);
+  circle(circleX, circleY, circleRadius * 2);
 }
 
 String getTime(LocalDateTime ldt) {
@@ -50,7 +59,7 @@ String getTime(LocalDateTime ldt) {
   if(ldt.getMinute() < 10) time = "0" + time;
   int hour = ldt.getHour();
   if(hour > 12) time = (hour - 12) + ":" + time + " pm"; 
-  else time = hour + ":" + time + "am";
+  else time = hour + ":" + time + " am";
   return time;
 }
 
@@ -65,11 +74,7 @@ void setPixelsToBlack(float x, float y) {
     int px = i % width, py = i / width;
     float dx = px - x, dy = py - y;
     boolean outside = dx * dx + dy * dy > radiusSquared;
-    switch(state) {
-      case 0: if((side == 0 && px < x || side == 1 && px > x) && outside) pixels[i] = black; break;
-      case 1: if(outside) pixels[i] = black; break;
-      case 2: if((side == 0 && px > x || side == 1 && px < x) && outside) pixels[i] = black; break;
-    }
+    if(outside) pixels[i] = black;
   }
   updatePixels();
 }
