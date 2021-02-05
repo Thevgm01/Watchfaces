@@ -22,6 +22,8 @@ final int X = 0, Y = 1, Z = 2, M = 3, N = 4;
 float[] stars;
 
 float textSize;
+String curTime;
+PGraphics timeGraphic;
 
 void setup() {
   //fullScreen(P3D);
@@ -37,6 +39,8 @@ void setup() {
   textSize = 50;
   textFont(createFont("SansSerif", textSize));
   textAlign(CENTER, CENTER);
+  
+  imageMode(CENTER);
 
   stars = new float[numStars * N];
   for(int i = 0; i < stars.length; i += N) {
@@ -85,8 +89,15 @@ void draw() {
   
   translate(width/2, height/2, 0);
   
+  LocalDateTime now = LocalDateTime.now();
+  String time = timeFormatter.format(now).toLowerCase();
+  if(!time.equals(curTime)) {
+    curTime = time;
+    String date = dateFormatter.format(now);
+    timeGraphic = createText(time, date, 3);
+  }
   hint(DISABLE_DEPTH_TEST);
-  drawText();
+  image(timeGraphic, 0, 0);
   hint(ENABLE_DEPTH_TEST);
 }
 
@@ -124,17 +135,15 @@ void randomizeStar(int star) {
   stars[star+M] = 2000 - length * 2;
 }
 
-void drawText() {  
+PGraphics createText(String time, String date, float strokeWeight) {  
   //fill(0);
   //noStroke();
   //rect(0, 0, textWidth(time.toString()) + 10, textSize);
-  
-  String time = timeFormatter.format(LocalDateTime.now()).toLowerCase();  
+    
   float timeSize = textSize;
   textSize(timeSize);
   float timeWidth = textWidth(time);
   
-  String date = dateFormatter.format(LocalDateTime.now());
   float dateSize = textSize;
   float dateSizeDiff = timeSize * 0.5f;
   while(dateSizeDiff > 1f) {
@@ -145,11 +154,34 @@ void drawText() {
     dateSizeDiff *= 0.5f;
   }
 
-  float h = timeSize + dateSize;
+  float w = timeWidth, h = timeSize + dateSize;
+  int strokeSamples = 20;
 
-  fill(255);
-  textSize(timeSize);
-  text(time, 0, -h/4);
-  textSize(dateSize);
-  text(date, 0,  h/4);
+  PGraphics result = createGraphics(ceil(w * 1.1f), ceil(h * 1.1f));
+  result.beginDraw();
+  result.textAlign(CENTER, CENTER);
+  result.translate(result.width/2, result.height/2);
+
+  if(strokeWeight > 0) {
+    result.fill(0);
+    for(int i = 0; i < 20; ++i) {
+      float piFrac = i * TWO_PI / strokeSamples;
+      float cos = cos(piFrac) * strokeWeight;
+      float sin = sin(piFrac) * strokeWeight;
+      
+      result.textSize(timeSize);
+      result.text(time, cos, sin - h/4);
+      result.textSize(dateSize);
+      result.text(date, cos, sin + h/4);
+    }
+  }
+
+  result.fill(255);
+  result.textSize(timeSize);
+  result.text(time, 0, -h/4);
+  result.textSize(dateSize);
+  result.text(date, 0,  h/4);
+  
+  result.endDraw();
+  return result;
 }
