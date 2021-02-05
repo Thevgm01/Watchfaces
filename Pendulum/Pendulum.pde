@@ -1,12 +1,11 @@
 import java.time.*;
 
-// period = 2pi * sqrt(length / gravity)
-// (period * period) / (2pi * 2pi) = length / gravity
-// gravity = length * (2pi * 2pi) / (period * period)
-
 float circleRadius = 70;
 float pendulumLength = 300;
 float maxAngle = 0;
+
+int state = 0;
+int side = 0;
 
 void setup() {
   size(400, 400); 
@@ -29,7 +28,9 @@ void draw() {
   noStroke();
   text(time, 0, 0);
   
-  float angle = cos(((now.getEpochSecond() % 2) + now.getNano() * 1e-9) * PI) * maxAngle + HALF_PI;
+  state = (int)(now.getEpochSecond() % 3);
+  side = (int)(now.getEpochSecond() % 2);
+  float angle = cos((side + now.getNano() * 1e-9) * PI) * maxAngle + HALF_PI;
   float cos = cos(angle), sin = sin(angle);
   
   float circleX = cos * pendulumLength, circleY = sin * pendulumLength - pendulumLength;
@@ -63,8 +64,11 @@ void setPixelsToBlack(float x, float y) {
   for(int i = 0; i < pixels.length; ++i) {
     int px = i % width, py = i / width;
     float dx = px - x, dy = py - y;
-    if(dx * dx + dy * dy > radiusSquared) {
-      pixels[i] = black;
+    boolean outside = dx * dx + dy * dy > radiusSquared;
+    switch(state) {
+      case 0: if((side == 0 && px < x || side == 1 && px > x) && outside) pixels[i] = black; break;
+      case 1: if(outside) pixels[i] = black; break;
+      case 2: if((side == 0 && px > x || side == 1 && px < x) && outside) pixels[i] = black; break;
     }
   }
   updatePixels();
