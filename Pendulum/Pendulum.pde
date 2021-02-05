@@ -2,14 +2,12 @@ import java.time.*;
 
 float pendulumLength = 0;
 float circleRadius = 0;
-float curCircleRadius = circleRadius;
+float curCircleRadius = 0;
 float maxAngle = 0;
 float halfMaxHeight = 0;
 
 float lineThickness = 5;
 float maxAngleReduce = 0.8f;
-
-PImage blackBackground;
 
 int state = 0;
 int side = 0;
@@ -21,15 +19,13 @@ void setup() {
   fullScreen();
   frameRate(30);
   
-  pendulumLength = height * 1.5f;
-  circleRadius = 70;
+  pendulumLength = height;
+  circleRadius = 80;
   curCircleRadius = circleRadius;
   maxAngle = asin((width/2 - circleRadius) / pendulumLength);
   maxAngle *= maxAngleReduce;
   halfMaxHeight = sin(maxAngle) * 0.67f * circleRadius;
-  
-  blackBackground = createBackground(circleRadius);
-  
+    
   imageMode(CENTER);
   rectMode(CORNERS);
   strokeCap(SQUARE);
@@ -97,17 +93,16 @@ void draw() {
     rect(circleX - curCircleRadius, circleY + curCircleRadius, circleX, height);
     
     translate(circleX, circleY);
-            
-    pushMatrix();
-    scale(curCircleRadius / circleRadius);
-    image(blackBackground, 0, 0);
-    popMatrix();
     
-    noFill();
-    stroke(255);
     strokeWeight(lineThickness);
     pushMatrix();
+    for(int i = 0; i < 10; ++i) {
+      rect(-curCircleRadius, -curCircleRadius * 2, curCircleRadius, -curCircleRadius);
+      rotate(TWO_PI / 10); 
+    }
     rotate(angle - HALF_PI);
+    noFill();
+    stroke(255);
     line(0, -curCircleRadius, 0, -pendulumLength);
     popMatrix();
     
@@ -139,23 +134,6 @@ String getDate(LocalDateTime ldt) {
   date = monthNames[ldt.getMonthValue() - 1] + " " + date;
   date = date + ", " + ldt.getYear();
   return date;
-}
-
-PImage createBackground(float radius) {
-  PImage img = createImage((int)(radius * 2), (int)(radius * 2), ARGB);
-  int x = img.width/2, y = img.height/2;
-  float radiusSquared = radius * radius;
-  color black = color(0);
-  
-  for(int i = 0; i < img.pixels.length; ++i) {
-    int px = i % img.width, py = i / img.width;
-    float dx = px - x, dy = py - y;
-    boolean outside = dx * dx + dy * dy > radiusSquared;
-    if(outside) img.pixels[i] = black;
-    else img.pixels[i] = 0;
-  }
-  
-  return img;
 }
 
 float logistic(float t, float max, float steep) {
