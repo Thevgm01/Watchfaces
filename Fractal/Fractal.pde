@@ -16,7 +16,8 @@ int smallestHandToDraw = 0;
 int lastInteractiveMillis = 0;
 int animationMillis = 1 * 1000;
 
-PGraphics face;
+PGraphics ambientFace;
+PGraphics interactiveFace;
 
 void setup() {
   fullScreen(P2D);
@@ -28,25 +29,11 @@ void setup() {
   lengths = new float[] { 75, 100, 50 };
   
   interactiveMinScale = 0.1f;
-  ambientMinScale = 0.01f;
+  ambientMinScale = 0.1f;
   
   interactiveSecondLength = 75;
   
-  face = createGraphics(width, height);
-  face.beginDraw();
-  face.translate(width/2, height/2);
-  for(int i = 0; i < 12 * 5; ++i) {
-    float l = 20f;
-    if(i % 5 == 0) l *= 2;
-    face.stroke(0);
-    face.strokeWeight(6);
-    face.line(0, height/2f, 0, height/2f - l);
-    face.stroke(255);
-    face.strokeWeight(3);
-    face.line(0, height/2f, 0, height/2f - l);
-    face.rotate(TWO_PI / (12 * 5));
-  }
-  face.endDraw();
+  createFaces();
 }
 
 void draw() {    
@@ -77,7 +64,7 @@ void draw() {
   } else {
     smallestHandToDraw = 0;
     minScale = interactiveMinScale;
-    colChange = 160;
+    //colChange = 160;
     
     LocalDateTime now = LocalDateTime.now();
     float[] desiredAngles = new float[3];
@@ -121,7 +108,8 @@ void draw() {
   
   resetMatrix();
   //blendMode(EXCLUSION);
-  image(face, 0, 0);
+  if(wearAmbient()) image(ambientFace, 0, 0);
+  else image(interactiveFace, 0, 0);
 }
 
 void drawHands(float scale, float scaleChange, float col, float colChange) {
@@ -149,4 +137,36 @@ float pingPong(float t, float max) {
   float T = t % L;
   if(T >= 0 && T < max) return T;
   return L - T;
+}
+
+void createFaces() {
+  ambientFace = createGraphics(width, height);
+  interactiveFace = createGraphics(width, height);
+  
+  ambientFace.beginDraw();
+  interactiveFace.beginDraw();
+  
+  ambientFace.translate(width/2, height/2);
+  interactiveFace.translate(width/2, height/2);
+  
+  ambientFace.stroke(127);
+  ambientFace.strokeWeight(3);
+  
+  for(int i = 0; i < 12 * 5; ++i) {
+    float l = 20f;
+    if(i % 5 == 0) {
+      l *= 2;
+      ambientFace.line(0, height/2f, 0, height/2f - l);
+      ambientFace.rotate(TWO_PI / 12);
+    }
+    interactiveFace.stroke(0);
+    interactiveFace.strokeWeight(6);
+    interactiveFace.line(0, height/2f, 0, height/2f - l);
+    interactiveFace.stroke(255);
+    interactiveFace.strokeWeight(3);
+    interactiveFace.line(0, height/2f, 0, height/2f - l);
+    interactiveFace.rotate(TWO_PI / (12 * 5));
+  }
+  interactiveFace.endDraw();
+  ambientFace.endDraw();
 }
