@@ -7,12 +7,14 @@ DateTimeFormatter dateFormatter;
 final int numStars = 300;
 final float fadeDistance = 1000;
 
-float desiredStarSpeed = 30f;
+float originalStarSpeed = 0f;
+float desiredStarSpeed = 20f;
 float desiredStarLength = 60f;
 
 int lastInteractiveMillis = 0;
 int speedUpMillis = 1000;
 
+float ambientStarSize = 3f;
 float starSpeed = 30f;
 float lineLength = 50f;
 
@@ -26,17 +28,19 @@ String curTime;
 PGraphics timeGraphic;
 
 void setup() {
-  //fullScreen(P3D);
-  size(400, 400, P3D);
+  fullScreen(P3D);
+  //size(400, 400, P3D);
   frameRate(30);
   background(0);
+  
+  originalStarSpeed = desiredStarSpeed;
   
   //twentyFourHour = new SimpleDateFormat("HH:mm");
   timeFormatter = DateTimeFormatter.ofPattern("h:mm a");  
   dateFormatter = DateTimeFormatter.ofPattern("EE, MMMM d");  
   
-  //textSize = 30 * displayDensity;
-  textSize = 50;
+  textSize = 30 * displayDensity;
+  //textSize = 50;
   textFont(createFont("SansSerif", textSize));
   textAlign(CENTER, CENTER);
   
@@ -58,13 +62,15 @@ void draw() {
   rotate(sin(angle) * 2);
 
   noFill();
-  //if(wearAmbient()) {
-  if(!mousePressed) {
+  if(wearAmbient()) {
+  //if(!mousePressed) {
     
     lastInteractiveMillis = 0;
     
+    desiredStarSpeed = originalStarSpeed;
+    
     stroke(127);
-    strokeWeight(2);
+    strokeWeight(ambientStarSize);
     
     drawStarsAmbient();
     
@@ -75,11 +81,13 @@ void draw() {
     if(frac > 1) frac = 1;
     float expFrac = frac * frac;
         
+    desiredStarSpeed -= (desiredStarSpeed - originalStarSpeed) * 0.05f;
+        
     starSpeed = lerp(0, desiredStarSpeed, expFrac);
     desiredStarLength = starSpeed * 2f;
     lineLength = lerp(0, desiredStarLength, expFrac);
     stroke(lerp(127, 255, expFrac));
-    strokeWeight(lerp(2, 1, expFrac));
+    strokeWeight(lerp(ambientStarSize, 1, expFrac));
     
     angle += expFrac * 0.01f;
     
@@ -117,10 +125,9 @@ void drawStars() {
 
 void drawStarsAmbient() {
   for(int i = 0; i < stars.length; i += N) {
-    float stroke = lerp(0, 255, stars[i+Z] / fadeDistance);
-    if(stroke < 127)
-      stroke(stroke);
-    else stroke(127);
+    if(stars[i+Z] < fadeDistance)
+      stroke(lerp(0, 255, stars[i+Z] / fadeDistance));
+    else stroke(255);
     
     point(stars[i+X], stars[i+Y], stars[i+Z]);
   }
@@ -184,4 +191,8 @@ PGraphics createText(String time, String date, float strokeWeight) {
   
   result.endDraw();
   return result;
+}
+
+void mousePressed() {
+  desiredStarSpeed += 10; 
 }
