@@ -14,9 +14,12 @@ float desiredStarLength = 60f;
 int lastInteractiveMillis = 0;
 int speedUpMillis = 1000;
 
-float ambientStarSize = 3f;
+float ambientStarSize = 5f;
 float starSpeed = 30f;
 float lineLength = 50f;
+float starBrightness = 255f;
+
+float spawnDistance = -1000f;
 
 float angle = 0;
 
@@ -40,16 +43,18 @@ void setup() {
   dateFormatter = DateTimeFormatter.ofPattern("EE, MMMM d");  
   
   textSize = 30 * displayDensity;
-  //textSize = 50;
+  textSize = 50;
   textFont(createFont("SansSerif", textSize));
   textAlign(CENTER, CENTER);
   
   imageMode(CENTER);
 
+  noFill();
+
   stars = new float[numStars * N];
   for(int i = 0; i < stars.length; i += N) {
     randomizeStar(i);
-    stars[i+Z] = 2000 * ((float)i / stars.length);
+    stars[i+Z] = -spawnDistance * 2 * ((float)i / stars.length);
   }
 }
 
@@ -57,11 +62,10 @@ void draw() {
   background(0);
   
   pushMatrix();
-  //translate(width/2, height/2 + wearInsets().bottom/2);
-  translate(width/2, height/2, -1000);
+  translate(width/2, height/2 + wearInsets().bottom/2, spawnDistance);
+  //translate(width/2, height/2, -1000);
   rotate(sin(angle) * 2);
 
-  noFill();
   if(wearAmbient()) {
   //if(!mousePressed) {
     
@@ -69,7 +73,8 @@ void draw() {
     
     desiredStarSpeed = originalStarSpeed;
     
-    stroke(127);
+    starBrightness = 127;
+    stroke(starBrightness);
     strokeWeight(ambientStarSize);
     
     drawStarsAmbient();
@@ -79,14 +84,14 @@ void draw() {
     if(lastInteractiveMillis == 0) lastInteractiveMillis = millis();
     float frac = (float)(millis() - lastInteractiveMillis) / speedUpMillis;
     if(frac > 1) frac = 1;
-    float expFrac = frac * frac;
+    float expFrac = frac * frac * frac;
         
     desiredStarSpeed -= (desiredStarSpeed - originalStarSpeed) * 0.05f;
         
     starSpeed = lerp(0, desiredStarSpeed, expFrac);
     desiredStarLength = starSpeed * 2f;
     lineLength = lerp(0, desiredStarLength, expFrac);
-    stroke(lerp(127, 255, expFrac));
+    starBrightness = lerp(127, 255, expFrac);
     strokeWeight(lerp(ambientStarSize, 1, expFrac));
     
     angle += expFrac * 0.01f;
@@ -102,7 +107,7 @@ void draw() {
   if(!time.equals(curTime)) {
     curTime = time;
     String date = dateFormatter.format(now);
-    timeGraphic = createText(time, date, 3);
+    timeGraphic = createText(time, date, 4);
   }
   hint(DISABLE_DEPTH_TEST);
   image(timeGraphic, 0, 0);
@@ -114,8 +119,8 @@ void drawStars() {
     if(stars[i+Z] >= stars[i+M]) randomizeStar(i);
       
     if(stars[i+Z] < fadeDistance)
-      stroke(lerp(0, 255, stars[i+Z] / fadeDistance));
-    else stroke(255);
+      stroke(lerp(0, starBrightness, stars[i+Z] / fadeDistance));
+    else stroke(starBrightness);
       
     line(stars[i+X], stars[i+Y], stars[i+Z], stars[i+X], stars[i+Y], stars[i+Z] - lineLength);
     point(stars[i+X], stars[i+Y], stars[i+Z]);
@@ -126,8 +131,8 @@ void drawStars() {
 void drawStarsAmbient() {
   for(int i = 0; i < stars.length; i += N) {
     if(stars[i+Z] < fadeDistance)
-      stroke(lerp(0, 255, stars[i+Z] / fadeDistance));
-    else stroke(255);
+      stroke(lerp(0, starBrightness, stars[i+Z] / fadeDistance));
+    else stroke(starBrightness);
     
     point(stars[i+X], stars[i+Y], stars[i+Z]);
   }
@@ -139,14 +144,10 @@ void randomizeStar(int star) {
   stars[star+X] = cos(angle) * length;
   stars[star+Y] = sin(angle) * length;
   stars[star+Z] = 0;
-  stars[star+M] = 2000 - length * 2;
+  stars[star+M] = -spawnDistance * 2 - length * 2;
 }
 
-PGraphics createText(String time, String date, float strokeWeight) {  
-  //fill(0);
-  //noStroke();
-  //rect(0, 0, textWidth(time.toString()) + 10, textSize);
-    
+PGraphics createText(String time, String date, float strokeWeight) {      
   float timeSize = textSize;
   textSize(timeSize);
   float timeWidth = textWidth(time);
