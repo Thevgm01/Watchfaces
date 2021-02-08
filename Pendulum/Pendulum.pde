@@ -93,7 +93,20 @@ void draw() {
     circleY = lerp(0, circleY, logisticFrac);
     //circleY = lerp(lerp(0, -height, frac), lerp(0, circleY, frac), logisticFrac);
     
-    translate(circleX + width/2, circleY + height/2);
+    circleX += width/2;
+    circleY += height/2;
+    
+    // Boxes from the edges to the radius of the circle
+    fill(0);
+    stroke(0);
+    strokeWeight(2);
+    rectMode(CORNERS);
+    rect(0, 0, circleX - curCircleRadius, height); // Left
+    rect(circleX + curCircleRadius, 0, width, height); // Right
+    rect(circleX - curCircleRadius, 0, circleX, circleY - curCircleRadius); // Top
+    rect(circleX - curCircleRadius, circleY + curCircleRadius, circleX, height); // Bottom
+    
+    translate(circleX, circleY);
     
     // Draw the mask
     pushMatrix();
@@ -119,7 +132,7 @@ float logistic(float t, float max, float steep) {
 }
 
 PGraphics createMask(float radius) {
-  PGraphics result = createGraphics(width * 2, height * 2);
+  PGraphics result = createGraphics(ceil(radius * 2), ceil(radius * 2));
   
   float circleX = result.width/2;
   float circleY = result.height/2;
@@ -128,12 +141,6 @@ PGraphics createMask(float radius) {
   result.beginDraw();
   result.fill(0);
   result.noStroke();
-
-  // Boxes from the edges to the radius of the circle
-  result.rect(0, 0, circleX - radius, result.height);
-  result.rect(circleX + radius, 0, result.width, result.height);
-  result.rect(circleX - radius, 0, circleX, circleY - radius);
-  result.rect(circleX - radius, circleY + radius, circleX, result.height);
 
   // Rotated boxes around the circle
   result.translate(circleX, circleY);
@@ -154,10 +161,6 @@ PGraphics createMask(float radius) {
 void drawText(String time, String date) {
   pushMatrix();
   
-  //fill(0);
-  //noStroke();
-  //rect(0, 0, textWidth(time.toString()) + 10, textSize);
-    
   float timeSize = textSize;
   textSize(timeSize);
   float timeWidth = textWidth(time);
