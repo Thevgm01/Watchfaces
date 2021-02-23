@@ -6,10 +6,11 @@ float[] angles;
 float[] lastAngles;
 float[] lengths;
 
-float minScale;
 float scaleChange;
-float interactiveMinScale;
-float ambientMinScale;
+int interactiveMaxIterations;
+int ambientMaxIterations;
+int maxIterations;
+ArrayList<FractalState> endpoints;
 
 float interactiveSecondLength;
 
@@ -30,9 +31,10 @@ void setup() {
   lastAngles = new float[3];
   lengths = new float[] { 75, 100, 50 };
   
-  interactiveMinScale = 0.05f;
-  ambientMinScale = 0.05f;
+  interactiveMaxIterations = 8;
+  ambientMaxIterations = 8;
   scaleChange = 0.7f;
+  endpoints = new ArrayList<FractalState>();
   
   interactiveSecondLength = 75;
   
@@ -63,7 +65,7 @@ void draw() {
     
     smallestHandToDraw = 1;
     lastInteractiveMillis = 0;
-    minScale = ambientMinScale;
+    maxIterations = ambientMaxIterations;
 
     angles[0] = desiredAngles[1];
     angles[1] = desiredAngles[1];
@@ -73,7 +75,7 @@ void draw() {
   } else {
     
     smallestHandToDraw = 0;
-    minScale = interactiveMinScale;
+    maxIterations = interactiveMaxIterations;
     //colChange = 160;
     
     if(lastInteractiveMillis == 0) {
@@ -115,17 +117,51 @@ void draw() {
   //drawHands(handScale, 0.0f, 255, 50);
   */
     
-  float col = pingPong(angles[1] * 60f / PI * 255f, 255);
-  PShape fractal = createFractal(baseScale, scaleChange, col, colChange);
-  shape(fractal);
-  
+  drawFractal();
+    
   resetMatrix();
   //blendMode(EXCLUSION);
   if(mousePressed) image(faces[0], 0, 0);
   else image(faces[1], 0, 0);
 }
 
-PShape createFractal(float scale, float scaleChange, float col, float colChange) {
+boolean toggle = true;
+void keyPressed() {
+  if(key == ' ') toggle = !toggle;
+  else if(key == 'a') interactiveMaxIterations -= 1;
+  else if(key == 'd') interactiveMaxIterations += 1;
+  else if(key == 'q') println(numVertexes + " / " + frameRate);
+}
+
+int numVertexes;
+
+void drawFractal() {
+  float col = pingPong(angles[1] * 60f / PI * 255f, 255);
+  PShape fractal = createFractal(0.8f);
+  shape(fractal);
+  
+  numVertexes = 0;
+  numVertexes += fractal.getVertexCount();
+  
+  if(toggle) return;
+  
+  fractal.setStrokeWeight(1f/endpoints.get(0).s);
+  for(int i = 0; i < endpoints.size(); ++i) {
+    FractalState endpoint = endpoints.get(i);
+    pushMatrix();
+    translate(endpoint.x, endpoint.y);
+    rotate(endpoint.a);
+    scale(endpoint.s);
+    shape(fractal);
+    popMatrix();
+    
+    numVertexes += fractal.getVertexCount();
+  }
+}
+
+PShape createFractal(float scale) {
+  endpoints.clear();
+  
   PShape fractal = createShape();
   fractal.beginShape(LINES);
   fractal.stroke(255);
@@ -140,7 +176,10 @@ PShape createFractal(float scale, float scaleChange, float col, float colChange)
 }
 
 void generateFractal(PShape fractal, FractalState fs) {
-  if(fs.s < minScale) return;
+  if(fs.n > maxIterations) {
+    endpoints.add(fs);
+    return;
+  }
   
   for(int hand = smallestHandToDraw; hand < 3; ++hand) {
       
@@ -152,6 +191,7 @@ void generateFractal(PShape fractal, FractalState fs) {
     nfs.x = fs.x + sin(nfs.a) * l;
     nfs.y = fs.y - cos(nfs.a) * l;
     nfs.s = fs.s * scaleChange;
+    nfs.n = fs.n + 1;
 
     fractal.vertex(nfs.x, nfs.y);
     generateFractal(fractal, nfs);
@@ -199,5 +239,6 @@ void createFaces() {
 }
 
 class FractalState {
-  float a = 0, x = 0, y = 0, s = 0; 
+  float a = 0, x = 0, y = 0, s = 0;
+  int n = 0; 
 }
