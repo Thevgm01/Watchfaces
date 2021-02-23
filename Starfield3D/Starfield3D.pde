@@ -14,12 +14,14 @@ float desiredStarLength = 60f;
 int lastInteractiveMillis = 0;
 int speedUpMillis = 1000;
 
+<<<<<<< HEAD
 float ambientStarSize = 5f;
+float interactiveStarSize = 1f;
+=======
+float ambientStarSize = 3f;
+>>>>>>> parent of ab113a7... Improvements to color interpolation, size, and spawning
 float starSpeed = 30f;
 float lineLength = 50f;
-float starBrightness = 255f;
-
-float spawnDistance = -1000f;
 
 float angle = 0;
 
@@ -31,8 +33,8 @@ String curTime;
 PGraphics timeGraphic;
 
 void setup() {
-  fullScreen(P3D);
-  //size(400, 400, P3D);
+  //fullScreen(P3D);
+  size(500, 500, P3D);
   frameRate(30);
   background(0);
   
@@ -43,18 +45,20 @@ void setup() {
   dateFormatter = DateTimeFormatter.ofPattern("EE, MMMM d");  
   
   textSize = 30 * displayDensity;
-  textSize = 50;
+<<<<<<< HEAD
+  //textSize = 55;
+=======
+  //textSize = 50;
+>>>>>>> parent of ab113a7... Improvements to color interpolation, size, and spawning
   textFont(createFont("SansSerif", textSize));
   textAlign(CENTER, CENTER);
-  
+  rectMode(CENTER);
   imageMode(CENTER);
-
-  noFill();
 
   stars = new float[numStars * N];
   for(int i = 0; i < stars.length; i += N) {
     randomizeStar(i);
-    stars[i+Z] = -spawnDistance * 2 * ((float)i / stars.length);
+    stars[i+Z] = 2000 * ((float)i / stars.length);
   }
 }
 
@@ -62,10 +66,16 @@ void draw() {
   background(0);
   
   pushMatrix();
+<<<<<<< HEAD
   translate(width/2, height/2 + wearInsets().bottom/2, spawnDistance);
-  //translate(width/2, height/2, -1000);
+  //translate(width/2, height/2, spawnDistance);
+=======
+  //translate(width/2, height/2 + wearInsets().bottom/2);
+  translate(width/2, height/2, -1000);
+>>>>>>> parent of ab113a7... Improvements to color interpolation, size, and spawning
   rotate(sin(angle) * 2);
 
+  noFill();
   if(wearAmbient()) {
   //if(!mousePressed) {
     
@@ -73,8 +83,7 @@ void draw() {
     
     desiredStarSpeed = originalStarSpeed;
     
-    starBrightness = 127;
-    stroke(starBrightness);
+    stroke(127);
     strokeWeight(ambientStarSize);
     
     drawStarsAmbient();
@@ -84,15 +93,20 @@ void draw() {
     if(lastInteractiveMillis == 0) lastInteractiveMillis = millis();
     float frac = (float)(millis() - lastInteractiveMillis) / speedUpMillis;
     if(frac > 1) frac = 1;
-    float expFrac = frac * frac * frac;
+    float expFrac = frac * frac;
         
     desiredStarSpeed -= (desiredStarSpeed - originalStarSpeed) * 0.05f;
         
     starSpeed = lerp(0, desiredStarSpeed, expFrac);
     desiredStarLength = starSpeed * 2f;
     lineLength = lerp(0, desiredStarLength, expFrac);
+<<<<<<< HEAD
     starBrightness = lerp(127, 255, expFrac);
+    strokeWeight(lerp(ambientStarSize, interactiveStarSize, expFrac));
+=======
+    stroke(lerp(127, 255, expFrac));
     strokeWeight(lerp(ambientStarSize, 1, expFrac));
+>>>>>>> parent of ab113a7... Improvements to color interpolation, size, and spawning
     
     angle += expFrac * 0.01f;
     
@@ -107,10 +121,24 @@ void draw() {
   if(!time.equals(curTime)) {
     curTime = time;
     String date = dateFormatter.format(now);
+<<<<<<< HEAD
     timeGraphic = createText(time, date, 4);
+    //timeGraphic = createText("Starfield", "Watch Face", 4);
+    //timeGraphic = createText("2:36 pm", "Tue, February 16", 4);
+=======
+    timeGraphic = createText(time, date, 3);
+>>>>>>> parent of ab113a7... Improvements to color interpolation, size, and spawning
   }
   hint(DISABLE_DEPTH_TEST);
   image(timeGraphic, 0, 0);
+  /*
+  if(!mousePressed) {
+    //resetMatrix();
+    fill(0, 100);
+    noStroke();
+    rect(0, 0, width, height);
+  }
+  */
   hint(ENABLE_DEPTH_TEST);
 }
 
@@ -119,8 +147,8 @@ void drawStars() {
     if(stars[i+Z] >= stars[i+M]) randomizeStar(i);
       
     if(stars[i+Z] < fadeDistance)
-      stroke(lerp(0, starBrightness, stars[i+Z] / fadeDistance));
-    else stroke(starBrightness);
+      stroke(lerp(0, 255, stars[i+Z] / fadeDistance));
+    else stroke(255);
       
     line(stars[i+X], stars[i+Y], stars[i+Z], stars[i+X], stars[i+Y], stars[i+Z] - lineLength);
     point(stars[i+X], stars[i+Y], stars[i+Z]);
@@ -131,8 +159,8 @@ void drawStars() {
 void drawStarsAmbient() {
   for(int i = 0; i < stars.length; i += N) {
     if(stars[i+Z] < fadeDistance)
-      stroke(lerp(0, starBrightness, stars[i+Z] / fadeDistance));
-    else stroke(starBrightness);
+      stroke(lerp(0, 255, stars[i+Z] / fadeDistance));
+    else stroke(255);
     
     point(stars[i+X], stars[i+Y], stars[i+Z]);
   }
@@ -144,10 +172,18 @@ void randomizeStar(int star) {
   stars[star+X] = cos(angle) * length;
   stars[star+Y] = sin(angle) * length;
   stars[star+Z] = 0;
-  stars[star+M] = -spawnDistance * 2 - length * 2;
+  stars[star+M] = 2000 - length * 2;
 }
 
-PGraphics createText(String time, String date, float strokeWeight) {      
+<<<<<<< HEAD
+PGraphics createText(String time, String date, float strokeWeight) {
+=======
+PGraphics createText(String time, String date, float strokeWeight) {  
+  //fill(0);
+  //noStroke();
+  //rect(0, 0, textWidth(time.toString()) + 10, textSize);
+    
+>>>>>>> parent of ab113a7... Improvements to color interpolation, size, and spawning
   float timeSize = textSize;
   textSize(timeSize);
   float timeWidth = textWidth(time);
@@ -197,3 +233,10 @@ PGraphics createText(String time, String date, float strokeWeight) {
 void mousePressed() {
   desiredStarSpeed += 10; 
 }
+/*
+void keyPressed() {
+  if(key == ' ') {
+    saveFrame("frames/" + frameCount); 
+  }
+}
+*/
