@@ -1,6 +1,8 @@
 import java.util.Stack;
 import java.time.LocalDateTime;
 
+TrigTable trig;
+
 // Seconds, Minutes, Hours
 float[] angles;
 float[] lastAngles;
@@ -27,6 +29,8 @@ void setup() {
   frameRate(30);
   colorMode(HSB);
   
+  trig = new TrigTable();
+  
   angles = new float[3];
   lastAngles = new float[3];
   lengths = new float[] { 75, 100, 50 };
@@ -42,6 +46,7 @@ void setup() {
 }
 
 void draw() {    
+  
   background(0);
   translate(width/2, height/2);
 
@@ -103,19 +108,12 @@ void draw() {
     }
   }
 
-  /*
-  base = null;
-  float col = pingPong(angles[1] * 60f / PI * 255f, 255);
-  //blendMode(BLEND);
-  stroke(255);
-  strokeWeight(1);
-  drawHands(baseScale, scaleChange, col, colChange);
-  shape(fractal);
+  //stroke(0);
   //strokeWeight(10);
   //drawHands(handScale, 0.0f, 0, 0);
+  //stroke(255);
   //strokeWeight(5);
   //drawHands(handScale, 0.0f, 255, 50);
-  */
     
   drawFractal();
     
@@ -128,14 +126,22 @@ void draw() {
 boolean toggle = true;
 void keyPressed() {
   if(key == ' ') toggle = !toggle;
-  else if(key == 'a') interactiveMaxIterations -= 1;
-  else if(key == 'd') interactiveMaxIterations += 1;
-  else if(key == 'q') println(numVertexes + " / " + frameRate);
+  
+  if(mousePressed) {
+    if(key == 'a') interactiveMaxIterations -= 1;
+    else if(key == 'd') interactiveMaxIterations += 1;
+  } else {
+    if(key == 'a') ambientMaxIterations -= 1;
+    else if(key == 'd') ambientMaxIterations += 1;
+  }
+  
+  if(key == 'q') println(numVertexes + " / " + frameRate);
 }
 
 int numVertexes;
 
-void drawFractal() {
+void drawFractal() {  
+  
   float col = pingPong(angles[1] * 60f / PI * 255f, 255);
   PShape fractal = createFractal(0.8f);
   shape(fractal);
@@ -177,24 +183,27 @@ PShape createFractal(float scale) {
 
 void generateFractal(PShape fractal, FractalState fs) {
   if(fs.n > maxIterations) {
-    endpoints.add(fs);
+    //endpoints.add(fs);
     return;
   }
-  
+  //stroke(pingPong(angles[1] * 60f / PI * 255f, 255));
   for(int hand = smallestHandToDraw; hand < 3; ++hand) {
       
-    fractal.vertex(fs.x, fs.y);
     FractalState nfs = new FractalState();
     
     float l = lengths[hand] * fs.s;
     nfs.a = fs.a + angles[hand];
-    nfs.x = fs.x + sin(nfs.a) * l;
-    nfs.y = fs.y - cos(nfs.a) * l;
+    nfs.x = fs.x + trig.sin(nfs.a) * l;
+    nfs.y = fs.y - trig.cos(nfs.a) * l;
     nfs.s = fs.s * scaleChange;
     nfs.n = fs.n + 1;
 
-    fractal.vertex(nfs.x, nfs.y);
     generateFractal(fractal, nfs);
+    
+    //fractal.stroke(pingPong(fs.n * 10 + 255 + fs.a * 200, 255));
+    fractal.stroke(pingPong(fs.n * 50 + 100, 255));
+    fractal.vertex(fs.x, fs.y);
+    fractal.vertex(nfs.x, nfs.y);
   }
 }
 
@@ -203,10 +212,8 @@ float logistic(float t, float max, float steep) {
 }
 
 float pingPong(float t, float max) {
-  float L = 2 * max;
-  float T = t % L;
-  if(T >= 0 && T < max) return T;
-  return L - T;
+  //return (4 * max / max) * abs((t - max / 4) % max - max / 2) - max;
+  return max - abs(abs(t) % (2 * max) - max);
 }
 
 void createFaces() {
