@@ -1,3 +1,4 @@
+import java.util.Stack;
 import java.time.LocalDateTime;
 
 // Seconds, Minutes, Hours
@@ -51,53 +52,56 @@ void draw() {
   // Ambient-specific
   float colChange = 150;
 
+  LocalDateTime now = LocalDateTime.now();
+  float[] desiredAngles = new float[3];
+  if(mousePressed) desiredAngles[0] = TWO_PI * (now.getSecond() + now.getNano() * 1e-9) / 60f;
+  desiredAngles[1] = (TWO_PI * now.getMinute() + desiredAngles[0]) / 60f;
+  desiredAngles[2] = (TWO_PI * now.getHour() + angles[1]) / 12f;
+
   float frac = 1f;
   if(!mousePressed) {
+    
     smallestHandToDraw = 1;
     lastInteractiveMillis = 0;
     minScale = ambientMinScale;
 
-    angles[1] = TWO_PI * minute() / 60f;
-    angles[2] = (TWO_PI * hour() + angles[1]) / 12f;
-    angles[0] = angles[1];
-    
+    angles[0] = desiredAngles[1];
+    angles[1] = desiredAngles[1];
+    angles[2] = desiredAngles[2];
     lengths[0] = lengths[1];
+    
   } else {
+    
     smallestHandToDraw = 0;
     minScale = interactiveMinScale;
     //colChange = 160;
     
-    LocalDateTime now = LocalDateTime.now();
-    float[] desiredAngles = new float[3];
-    desiredAngles[0] = TWO_PI * (now.getSecond() + now.getNano() * 1e-9) / 60f;
-    desiredAngles[1] = (TWO_PI * now.getMinute() + desiredAngles[0]) / 60f;
-    desiredAngles[2] = (TWO_PI * now.getHour() + angles[1]) / 12f;
-        
     if(lastInteractiveMillis == 0) {
       lastInteractiveMillis = millis();
-      for(int i = 0; i < 3; ++i) lastAngles[i] = angles[i];
+      for(int hand = 0; hand < 3; ++hand) lastAngles[hand] = angles[hand];
     }
     frac = (float)(millis() - lastInteractiveMillis) / animationMillis;
         
     if(frac >= 1) {
-      for(int i = 0; i < 3; ++i) angles[i] = desiredAngles[i];
+      for(int hand = 0; hand < 3; ++hand) angles[hand] = desiredAngles[hand];
       lengths[0] = interactiveSecondLength;
     } else {
       float logisticFrac = logistic(frac, 1, 3);
   
-      for(int i = 0; i < 3; ++i) {
-        if(desiredAngles[i] < angles[i])
-          desiredAngles[i] += TWO_PI;
+      for(int hand = 0; hand < 3; ++hand) {
+        if(desiredAngles[hand] < angles[hand])
+          desiredAngles[hand] += TWO_PI;
           
-        float diff = desiredAngles[i] - lastAngles[i];
-        if(diff <= PI) angles[i] = lerp(lastAngles[i], desiredAngles[i], logisticFrac);
-        else           angles[i] = lerp(lastAngles[i], desiredAngles[i] - TWO_PI, logisticFrac);
+        float diff = desiredAngles[hand] - lastAngles[hand];
+        if(diff <= PI) angles[hand] = lerp(lastAngles[hand], desiredAngles[hand], logisticFrac);
+        else           angles[hand] = lerp(lastAngles[hand], desiredAngles[hand] - TWO_PI, logisticFrac);
       }
       
       lengths[0] = lerp(lengths[1], interactiveSecondLength, logisticFrac);
     }
   }
 
+  /*
   base = null;
   float col = pingPong(angles[1] * 60f / PI * 255f, 255);
   //blendMode(BLEND);
@@ -109,6 +113,11 @@ void draw() {
   //drawHands(handScale, 0.0f, 0, 0);
   //strokeWeight(5);
   //drawHands(handScale, 0.0f, 255, 50);
+  */
+    
+  float col = pingPong(angles[1] * 60f / PI * 255f, 255);
+  PShape fractal = generateFractal(baseScale, scaleChange, col, colChange);
+  shape(fractal);
   
   resetMatrix();
   //blendMode(EXCLUSION);
@@ -116,29 +125,55 @@ void draw() {
   else image(interactiveFace, 0, 0);
 }
 
-PShape base;
-PShape fractal;
-void drawHands(float scale, float scaleChange, float col, float colChange) {
-  base = createShape(LINE, 0, 50, 0, 0);
-  fractal = createShape(GROUP);
-  fractal.addChild(base);
-  base.rotate(PI/2);
-  fractal.addChild(base);
-  /*
-  if(base == null) {
-    base = createShape(GROUP);
-    fractal = createShape(GROUP);
-  }
-  if(scale > minScale) {
-    base.rotate(angles[1]);
-    base.translate(0, -lengths[1] * scale);
-    drawHands(scale * scaleChange, scaleChange, col, colChange);
-  } else {
-    base.addChild(createShape(LINE, 0, 0, 0, -lengths[1] * scale));
+int num = 0;
+void keyPressed() {
+  if(key == 'a') --num;
+  else if(key == 'd') ++num;
+}
+
+PShape generateFractal(float scale, float scaleChange, float col, float colChange) {
+  PShape fractal = createShape();
+  fractal.beginShape(LINES);
+  fractal.stroke(255);
+  fractal.noFill();
+  
+  Stack<FractalState> fs = new Stack<FractalState>();
+  FractalState nfs = new FractalState();
+  nfs.s = scale;
+  fs.push(nfs);
+  
+  int count = 0;
+  while(!fs.empty()) {
+    for(int hand = smallestHandToDraw; hand < 2; ++hand) {
+      while(fs.peek().s > minScale) {
+        if(++count > num) {
+          fractal.endShape();
+          fs = null;
+          
+          return fractal;
+
+        }
+        
+        fractal.vertex(fs.peek().x, fs.peek().y);
+        
+        float l = lengths[hand] * fs.peek().s;
+        nfs.a = fs.peek().a + angles[hand];
+        nfs.x = fs.peek().x + sin(nfs.a) * l;
+        nfs.y = fs.peek().y - cos(nfs.a) * l;
+        nfs.s = fs.peek().s * scaleChange;
+        
+        fractal.vertex(nfs.x, nfs.y);
+        fs.push(nfs);
+      }
+      fs.pop();
+      //if(fs.empty()) break;
+    }
   }
   
-  fractal.addChild(base);
-  base = fractal.copy();
+  fractal.endShape();
+  fs = null;
+  
+  return fractal;
   /*
   for(int i = 0; i < 10; ++i) {
     rotate(angles[1]);
@@ -190,4 +225,8 @@ void createFaces() {
   }
   interactiveFace.endDraw();
   ambientFace.endDraw();
+}
+
+class FractalState {
+  float a = 0, x = 0, y = 0, s = 0; 
 }
