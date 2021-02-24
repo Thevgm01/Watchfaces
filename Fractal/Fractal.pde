@@ -47,17 +47,10 @@ void setup() {
 
 void draw() {    
   
+  //scaleChange = sin(frameCount / 10f) * 0.02f + 0.7f;
+  
   background(0);
   translate(width/2, height/2);
-
-  stroke(255);
-      
-  // Defaults
-  float baseScale = 0.8f;
-  float handScale = 0.8f;
-  
-  // Ambient-specific
-  float colChange = 150;
 
   LocalDateTime now = LocalDateTime.now();
   float[] desiredAngles = new float[3];
@@ -107,16 +100,30 @@ void draw() {
       lengths[0] = lerp(lengths[1], interactiveSecondLength, logisticFrac);
     }
   }
-
-  //stroke(0);
-  //strokeWeight(10);
-  //drawHands(handScale, 0.0f, 0, 0);
-  //stroke(255);
-  //strokeWeight(5);
-  //drawHands(handScale, 0.0f, 255, 50);
-    
+  
+  strokeWeight(1);
   drawFractal();
-    
+  
+  for(int i = 0; i < 2; ++i) {
+    for(int hand = 2; hand >= smallestHandToDraw; --hand) {
+      pushMatrix();
+      rotate(angles[hand]);
+      if(i == 0) {
+        stroke(0);
+        strokeWeight(9);
+      } else {
+        switch(hand) {
+          case 0: stroke(255); break; 
+          case 1: stroke(200); break; 
+          case 2: stroke(145); break; 
+        }
+        strokeWeight(3);
+      }
+      line(0, 0, 0, -lengths[hand]);
+      popMatrix();
+    }
+  }
+  
   resetMatrix();
   //blendMode(EXCLUSION);
   if(mousePressed) image(faces[0], 0, 0);
@@ -142,7 +149,6 @@ int numVertexes;
 
 void drawFractal() {  
   
-  float col = pingPong(angles[1] * 60f / PI * 255f, 255);
   PShape fractal = createFractal(0.8f);
   shape(fractal);
   
@@ -201,7 +207,7 @@ void generateFractal(PShape fractal, FractalState fs) {
     generateFractal(fractal, nfs);
     
     //fractal.stroke(pingPong(fs.n * 10 + 255 + fs.a * 200, 255));
-    fractal.stroke(pingPong(fs.n * 50 + 100, 255));
+    fractal.stroke(pingPong(fractal.getVertexCount() / 2f, 200) + 55);
     fractal.vertex(fs.x, fs.y);
     fractal.vertex(nfs.x, nfs.y);
   }
