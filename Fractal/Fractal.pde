@@ -1,6 +1,8 @@
 import java.util.Stack;
 import java.time.LocalDateTime;
 
+static final int AMBIENT = 0, INTERACTIVE = 1;
+
 TrigTable trig;
 
 // Seconds, Minutes, Hours
@@ -12,7 +14,7 @@ float scaleChange;
 int interactiveMaxIterations;
 int ambientMaxIterations;
 int maxIterations;
-ArrayList<FractalState> endpoints;
+//ArrayList<FractalState> endpoints;
 
 float interactiveSecondLength;
 
@@ -21,6 +23,7 @@ int smallestHandToDraw = 0;
 int lastInteractiveMillis = 0;
 int animationMillis = 1 * 1000;
 
+PShape[] fractals;
 PGraphics[] faces;
 
 void setup() {
@@ -28,17 +31,17 @@ void setup() {
   size(400, 400, P2D);
   frameRate(30);
   colorMode(HSB);
-  
+
   trig = new TrigTable();
   
   angles = new float[3];
   lastAngles = new float[3];
   lengths = new float[] { 75, 100, 50 };
-  
+    
   interactiveMaxIterations = 8;
   ambientMaxIterations = 8;
   scaleChange = 0.7f;
-  endpoints = new ArrayList<FractalState>();
+  //endpoints = new ArrayList<FractalState>();
   
   interactiveSecondLength = 75;
   
@@ -103,7 +106,32 @@ void draw() {
   
   strokeWeight(1);
   drawFractal();
+  drawHands();
   
+  resetMatrix();
+  //blendMode(EXCLUSION);
+  if(mousePressed) image(faces[INTERACTIVE], 0, 0);
+  else image(faces[AMBIENT], 0, 0);
+}
+
+boolean toggle = true;
+void keyPressed() {
+  if(key == ' ') toggle = !toggle;
+  
+  if(mousePressed) {
+    if(key == 'a') { interactiveMaxIterations -= 1; fractals = null; }
+    else if(key == 'd') { interactiveMaxIterations += 1; fractals = null; }
+  } else {
+    if(key == 'a') { ambientMaxIterations -= 1; fractals = null; }
+    else if(key == 'd') { ambientMaxIterations += 1; fractals = null; }
+  }
+  
+  if(key == 'q') println(numVertexes + " / " + frameRate);
+}
+
+int numVertexes;
+
+void drawHands() {
   for(int i = 0; i < 2; ++i) {
     for(int hand = 2; hand >= smallestHandToDraw; --hand) {
       pushMatrix();
@@ -123,40 +151,41 @@ void draw() {
       popMatrix();
     }
   }
-  
-  resetMatrix();
-  //blendMode(EXCLUSION);
-  if(mousePressed) image(faces[0], 0, 0);
-  else image(faces[1], 0, 0);
 }
-
-boolean toggle = true;
-void keyPressed() {
-  if(key == ' ') toggle = !toggle;
-  
-  if(mousePressed) {
-    if(key == 'a') interactiveMaxIterations -= 1;
-    else if(key == 'd') interactiveMaxIterations += 1;
-  } else {
-    if(key == 'a') ambientMaxIterations -= 1;
-    else if(key == 'd') ambientMaxIterations += 1;
-  }
-  
-  if(key == 'q') println(numVertexes + " / " + frameRate);
-}
-
-int numVertexes;
 
 void drawFractal() {  
+  if(fractals == null) {
+    fractals = new PShape[2];
+    for(int i = 0; i < 2; ++i) {
+      fractals[i] = createShape();
+      fractals[i].beginShape(LINES);
+      int totalVertexes = 0;
+      if(i == AMBIENT)
+        totalVertexes = calculateBranches(2, ambientMaxIterations);
+      else//if(i == INTERACTIVE)
+        totalVertexes = calculateBranches(3, interactiveMaxIterations);
+      for(int j = 0; j < totalVertexes; ++j) {
+        fractals[i].stroke(pingPong(j, 200) + 55);
+        fractals[i].vertex(0, 0);  
+        fractals[i].vertex(0, 0);
+      }
+      fractals[i].endShape();  
+    }
+  }
   
-  PShape fractal = createFractal(0.8f);
-  shape(fractal);
+  if(!mousePressed) {
+    createFractal(fractals[AMBIENT], 0.85f);
+    shape(fractals[AMBIENT]);
+  } else {
+    createFractal(fractals[INTERACTIVE], 0.85f);
+    shape(fractals[INTERACTIVE]);
+  }
   
+  /*
   numVertexes = 0;
   numVertexes += fractal.getVertexCount();
   
   if(toggle) return;
-  
   fractal.setStrokeWeight(1f/endpoints.get(0).s);
   for(int i = 0; i < endpoints.size(); ++i) {
     FractalState endpoint = endpoints.get(i);
@@ -169,22 +198,18 @@ void drawFractal() {
     
     numVertexes += fractal.getVertexCount();
   }
+  */
 }
-
-PShape createFractal(float scale) {
-  endpoints.clear();
+int counter = 0;
+void createFractal(PShape fractal, float scale) {
+  //endpoints.clear();
   
-  PShape fractal = createShape();
-  fractal.beginShape(LINES);
-  fractal.stroke(255);
-  fractal.noFill();
-  
+  counter = 0;
   FractalState fs = new FractalState();
   fs.s = scale;
   generateFractal(fractal, fs);
-
-  fractal.endShape();  
-  return fractal;
+  
+  //println(counter + "\t" + fractal.getVertexCount());
 }
 
 void generateFractal(PShape fractal, FractalState fs) {
@@ -192,7 +217,7 @@ void generateFractal(PShape fractal, FractalState fs) {
     //endpoints.add(fs);
     return;
   }
-  //stroke(pingPong(angles[1] * 60f / PI * 255f, 255));
+
   for(int hand = smallestHandToDraw; hand < 3; ++hand) {
       
     FractalState nfs = new FractalState();
@@ -207,9 +232,8 @@ void generateFractal(PShape fractal, FractalState fs) {
     generateFractal(fractal, nfs);
     
     //fractal.stroke(pingPong(fs.n * 10 + 255 + fs.a * 200, 255));
-    fractal.stroke(pingPong(fractal.getVertexCount() / 2f, 200) + 55);
-    fractal.vertex(fs.x, fs.y);
-    fractal.vertex(nfs.x, nfs.y);
+    fractal.setVertex(counter++, fs.x, fs.y);
+    fractal.setVertex(counter++, nfs.x, nfs.y);
   }
 }
 
@@ -222,6 +246,13 @@ float pingPong(float t, float max) {
   return max - abs(abs(t) % (2 * max) - max);
 }
 
+int calculateBranches(int splits, int depth) { 
+  int count = splits;
+  while(depth-- >= 1)
+    count = (count + 1) * splits;
+  return count;
+} 
+
 void createFaces() {
   faces = new PGraphics[2];
   for(int i = 0; i < 2; ++i) {
@@ -230,17 +261,17 @@ void createFaces() {
     faces[i].translate(width/2, height/2);
     
     int notches = 12;
-    if(i == 0) notches *= 5;
+    if(i == INTERACTIVE) notches *= 5;
     
     for(int j = 0; j < notches; ++j) {
       float l = 20f;
       
-      if(i == 1 || j % 5 == 0) l *= 2;
+      if(i == AMBIENT || j % 5 == 0) l *= 2;
       faces[i].stroke(0);
       faces[i].strokeWeight(6);
       faces[i].line(0, height/2f, 0, height/2f - l);
       
-      if(i == 0) faces[i].stroke(255);
+      if(i == INTERACTIVE) faces[i].stroke(255);
       else faces[i].stroke(127);
       faces[i].strokeWeight(3);
       faces[i].line(0, height/2f, 0, height/2f - l);
