@@ -1,8 +1,8 @@
-class TrigTable {
-  final int trigTableSize = 4000;
-  float[] sinTable, cosTable;
+static class TrigTable {
+  private static final int trigTableSize = 4000;
+  private static float[] sinTable, cosTable;
   
-  public TrigTable() {
+  public static void initialize() {
     int numEntries = (int)(TWO_PI * trigTableSize);
     sinTable = new float[numEntries + 1];
     cosTable = new float[numEntries + 1];
@@ -13,17 +13,17 @@ class TrigTable {
     }
   }
   
-  private float getTrigTable(float[] table, float angle) {
+  private static float getTrigTable(float[] table, float angle) {
     angle = angle % TWO_PI;
     while(angle < 0) angle += TWO_PI;
     return table[(int)(angle * trigTableSize)];
   }
   
-  public float sin(float angle) {
+  public static float sin(float angle) {
     return getTrigTable(sinTable, angle); 
   }
   
-  public float cos(float angle) {
+  public static float cos(float angle) {
     return getTrigTable(cosTable, angle); 
   }
 }
