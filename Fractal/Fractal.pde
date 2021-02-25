@@ -14,26 +14,28 @@ float[] lengths;
 //ArrayList<FractalState> endpoints;
 
 int lastInteractiveMillis = 1;
-int animationMillis = 2 * 1000;
+int[] animationMillis;
 
 FractalShape fractal;
 PGraphics[] faces;
+int faceRotationDirection = 1;
 float genFraction = 1f;
 
 void setup() {
   //fullScreen(P2D);
-  size(400, 400, P2D);
+  size(800, 800, P2D);
   frameRate(30);
   colorMode(HSB);
+  imageMode(CENTER);
 
   TrigTable.initialize();
   
   angles = new float[2];
   lastAngles = new float[2];
-  lengths = new float[] { 100, 50 };
-    
-  //endpoints = new ArrayList<FractalState>();
-    
+  lengths = new float[] { width/4, width/8 };
+  
+  animationMillis = new int[2];
+        
   fractal = new FractalShape();
   createFaces();
 }
@@ -52,41 +54,53 @@ void draw() {
   desiredAngles[MINUTE] = (TWO_PI * now.getMinute() + secondAngle) / 60f;
   desiredAngles[HOUR] = (TWO_PI * now.getHour() + angles[1]) / 12f;
 
+  float smallestFrac = 1f;
+  float smallestLogisticFrac = 1f;
 
-  float frac = 1f;
   if(!mousePressed) {
     
     if(lastInteractiveMillis > 0) {
       lastInteractiveMillis = 0;
-      genFraction = fractal.getMaxIterations();
     }
 
     angles[MINUTE] = desiredAngles[MINUTE];
     angles[HOUR] = desiredAngles[HOUR];
     
+    genFraction = fractal.getMaxIterations();
+    
   } else {
         
     if(lastInteractiveMillis == 0) {
       lastInteractiveMillis = millis();
+      faceRotationDirection *= -1;
+
+      int baseMillis = 1500;
+      do {
+        animationMillis[MINUTE] = (int)random(baseMillis) + baseMillis;
+        animationMillis[HOUR] = (int)random(baseMillis) + baseMillis;
+      } while(animationMillis[MINUTE] + animationMillis[HOUR] < baseMillis * 3);
+      
       lastAngles[MINUTE] = angles[MINUTE] - TWO_PI;
       lastAngles[HOUR] = angles[HOUR] - TWO_PI;
     }
-    frac = (float)(millis() - lastInteractiveMillis) / animationMillis;
-        
-    if(frac >= 1) {
-      angles[MINUTE] = desiredAngles[MINUTE];
-      angles[HOUR] = desiredAngles[HOUR];
-      genFraction = genFraction * 0.995f + 0.1f;
-    } else {
-      float logisticFrac = logistic(frac, 1, 3);
-  
-      for(int hand = 0; hand < 2; ++hand) {
-        //if(desiredAngles[hand] < angles[hand])
-        //  desiredAngles[hand] += TWO_PI;
-          
+    
+    for(int hand = 0; hand < 2; ++hand) {
+      float frac = (float)(millis() - lastInteractiveMillis) / animationMillis[hand];
+      if(frac < smallestFrac)
+        smallestFrac = frac;
+      if(frac >= 1) {
+        angles[hand] = desiredAngles[hand];
+      } else {
+        float logisticFrac = logistic(frac, 1, 3);
         angles[hand] = lerp(lastAngles[hand], desiredAngles[hand], logisticFrac);
       }
-      genFraction = lerp(fractal.getMaxIterations(), 1, logisticFrac);
+    }
+    
+    if(smallestFrac >= 1) {
+      genFraction = genFraction * 0.995f + 0.1f;
+    } else {
+      smallestLogisticFrac = logistic(smallestFrac, 1, 3);
+      genFraction = lerp(fractal.getMaxIterations(), 1, smallestLogisticFrac);
     }
     
   }
@@ -99,6 +113,8 @@ void draw() {
   
   resetMatrix();
   //blendMode(EXCLUSION);
+  translate(width/2, height/2);
+  rotate(smallestLogisticFrac * HALF_PI / 3 * faceRotationDirection);
   if(mousePressed) image(faces[INTERACTIVE], 0, 0);
   else image(faces[AMBIENT], 0, 0);
 }
