@@ -58,9 +58,9 @@ class FractalShape {
       return;
     }
     
-    if(fs.n < genFraction && fs.n > genFraction - 1) {
+    if(fs.n < genFraction + 1 && fs.n > genFraction) {
       fs.s *= genFraction - (int)genFraction;
-    } else if(fs.n >= genFraction) {
+    } else if(fs.n >= genFraction + 1) {
       fs.s = 0; 
     }
     
