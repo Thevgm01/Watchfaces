@@ -10,6 +10,7 @@ class FractalShape {
   
   private float scaleChange = 0.7f;
   private int maxIterations = 10;
+  public int getMaxIterations() { return maxIterations; }
   private int counter = 0;
   
   public FractalShape() {
@@ -29,7 +30,6 @@ class FractalShape {
   }
   
   public void resetVertexes() {
-    genFraction = 1f;
     for(int i = 0; i < fractal.getVertexCount(); ++i)
       fractal.setVertex(i, 0, 0);
   }
@@ -64,7 +64,7 @@ class FractalShape {
       fs.s = 0; 
     }
     
-    for(int hand = smallestHandToDraw; hand < 3; ++hand) {
+    for(int hand = 0; hand < 2; ++hand) {
       
       FractalState nfs = new FractalState();
       
