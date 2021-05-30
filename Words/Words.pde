@@ -3,36 +3,53 @@ import java.time.format.*;
 
 DateTimeFormatter timeFormatter;
 String timeNumbers;
+TimeWords timeWords;
+
+static enum CapsStyle { NONE, FIRST, ALL };
+
+// First 2 chars: hour
+// Second 2 chars: minute
+// Last char: meridian
+String displayPattern = "aBac";
 
 String[] words = { 
-  "one", "two", "three", "four", "five", "six", "seven",
+  "zero", "one", "two", "three", "four", "five", "six", "seven",
   "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen",
   "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty",
   "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety" };
   
 void setup() {
-  timeFormatter = DateTimeFormatter.ofPattern("h m a");  
+  size(400, 400);
+  timeFormatter = DateTimeFormatter.ofPattern("h m a");
+  timeWords = new TimeWords();
+  textAlign(CENTER, CENTER);  
 }
 
 void draw() {
   LocalDateTime now = LocalDateTime.now();
-  String newTimeNumbers = timeFormatter.format(now).toLowerCase();
+  String newTimeNumbers = timeFormatter.format(now);
   if(!newTimeNumbers.equals(timeNumbers)) {
     timeNumbers = newTimeNumbers;
-    printWords(timeNumbersToWords(timeNumbers));
+    ArrayList<String> timeWordTexts = timeNumbersToWords(timeNumbers);
+    timeWords.setWords(timeWordTexts);
   }
+  
+  background(0);
+  translate(width/2, height/2);
+  
+  timeWords.draw();
 }
 
 ArrayList<String> timeNumbersToWords(String time) {
   ArrayList<String> result = new ArrayList<String>();
   String[] words = time.split(" ");
-  result.addAll(numberToWords(words[0], false));
-  result.addAll(numberToWords(words[1], true));
+  result.addAll(numberStringToWords(words[0], false));
+  result.addAll(numberStringToWords(words[1], true));
   result.add(words[2]);
   return result;
 }
 
-ArrayList<String> numberToWords(String num, boolean includeO) {
+ArrayList<String> numberStringToWords(String num, boolean includeO) {
   try {
     return numberToWords(Integer.parseInt(num), includeO); 
   } catch(Exception e) {
@@ -50,17 +67,24 @@ ArrayList<String> numberToWords(int num, boolean includeO) {
     }
   }
   else if(num >= 20) {
-    result.add(words[(num / 10) + 17]);
+    result.add(words[(num / 10) + 18]);
     num = num % 10;
   }
   if(num > 0) {
-    result.add(words[num - 1]);
+    result.add(words[num]);
   }
   return result;
 }
 
-void printWords(ArrayList<String> words) {
+void printWords(ArrayList<String> words, String pattern) {
+  int patternIndex = 0;
   for(String word: words) {
+    char c = pattern.charAt(patternIndex);
+    patternIndex = (patternIndex + 1) % pattern.length();
+    if(c >= 'A' && c <= 'Z') {
+      word = word.toUpperCase();
+      c += 'a' - 'A';
+    }
     print(word);
   }
   println();
